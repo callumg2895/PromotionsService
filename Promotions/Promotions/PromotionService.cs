@@ -36,25 +36,22 @@ namespace Promotions
 		public decimal CalculateTotal(Order order)
 		{
 			var orderTotal = 0m;
-			
-			/*
-			 * We want to create a copy of the order, so we don't affect the original reference with any changes. This
-			 * prevents unwanted side effects for the caller.
-			 * 
-			 * The idea is to loop through the promotions. If a promotion applies, make a note of it, and remove the
-			 * associated items from the order. At the end we should be left with a list of applied promotions, and a
-			 * list of order items that could not be assigned to a promotion. Then we just sum up the prices of these.
-			 */
-
-			var orderCopy = CreateOrderCopy(order);
+			var orderLookup = order.Items.ToDictionary(i => i.Id, i => i.Quantity);
 			var appliedPromotions = new List<Promotion>();
+
+			/*
+			 * Loop through the promotions. If a promotion applies, make a note of it, and subtract the associated quantity 
+			 * of items from the quantity stored in order lookup table. At the end we should be left with a list of 
+			 * applied promotions, and the order lookup table will contain the quantity of each item that could not be assigned
+			 * to a promotion. Then we just sum up the prices of these.
+			 */
 
 			// Apply the promotions where possible, and remove affected items (if any) from the order copy.
 			foreach (var promotion in _promotions)
 			{
 				// The promotion might apply more than once, so keep going until it can't be applied anymore.
 				// Question: do we want to define some sort of 'priority' for promotions in the future?
-				while (TryApplyPromotion(promotion, orderCopy))
+				while (TryApplyPromotion(promotion, orderLookup))
 				{
 					appliedPromotions.Add(promotion);
 				}
@@ -79,48 +76,27 @@ namespace Promotions
 			}
 
 			// Update the total with the price of all remaining items in the order
-			foreach (var orderItem in orderCopy.Items)
+			foreach (var id in orderLookup.Keys)
 			{
-				if (_inventoryLookup.TryGetValue(orderItem.Id, out var inventoryItem))
+				if (_inventoryLookup.TryGetValue(id, out var inventoryItem))
 				{
-					orderTotal += (inventoryItem.Price * orderItem.Quantity);
+					orderTotal += (inventoryItem.Price * orderLookup[id]);
 				}
 				else
 				{
-					throw new ArgumentException($"SKU id '{orderItem.Id}' not recognised in inventory");
+					throw new ArgumentException($"SKU id '{id}' not recognised in inventory");
 				}
 			}
 
 			return orderTotal;
 		}
 
-		private Order CreateOrderCopy(Order order)
+		private bool TryApplyPromotion(Promotion promotion, Dictionary<string, int> orderLookup)
 		{
-			var orderCopy = new Order();
-
-			orderCopy.Items = new List<OrderItem>();
-
-			foreach (var item in order.Items)
-			{
-				var itemCopy = new OrderItem();
-
-				itemCopy.Id = item.Id;
-				itemCopy.Quantity = item.Quantity;
-
-				orderCopy.Items.Add(itemCopy);
-			}
-
-			return orderCopy;
-		}
-
-		private bool TryApplyPromotion(Promotion promotion, Order order)
-		{
-			var orderLookup = order.Items.ToDictionary(i => i.Id, i => i);
-
 			// Check that the order meets the requirements of the promotion
 			foreach (var promotionItem in promotion.Items)
 			{
-				if (orderLookup.TryGetValue(promotionItem.Id, out var orderItem) && orderItem.Quantity >= promotionItem.Quantity)
+				if (orderLookup.TryGetValue(promotionItem.Id, out var quantity) && quantity >= promotionItem.Quantity)
 				{
 					// An item of the correct type and quantity exists and meets the requirements of the promotion, so keep going 
 					continue;
@@ -135,9 +111,11 @@ namespace Promotions
 			// At this point, we know the promotion can be applied, so apply it
 			foreach (var promotionItem in promotion.Items)
 			{
-				var orderItem = orderLookup[promotionItem.Id];
+				var quantity = orderLookup[promotionItem.Id];
 
-				orderItem.Quantity -= promotionItem.Quantity;
+				quantity -= promotionItem.Quantity;
+
+				orderLookup[promotionItem.Id] = quantity;
 			}
 
 			return true;
