@@ -65,52 +65,11 @@ namespace Promotions.Tests
 			_inventory = null;
 		}
 
+		/// <summary>
+		/// Scenario A: Promotion Service calculates the correct total price for an order where no promotions apply.
+		/// </summary>
 		[Test]
-		public void ScenarioA()
-		{
-			// Arrange
-			var promotionService = new PromotionService(_inventory, _promotions);
-			var order = new Order()
-			{
-				Items = new List<OrderItem>()
-				{
-					new OrderItem() { Id = "A", Quantity = 1 },
-					new OrderItem() { Id = "B", Quantity = 1 },
-					new OrderItem() { Id = "C", Quantity = 1 }
-				}
-			};
-
-			// Act
-			var orderTotal = promotionService.CalculateTotal(order);
-
-			// Assert
-			Assert.AreEqual(100m, orderTotal);
-		}
-
-		[Test]
-		public void ScenarioB()
-		{
-			// Arrange
-			var promotionService = new PromotionService(_inventory, _promotions);
-			var order = new Order()
-			{
-				Items = new List<OrderItem>()
-				{
-					new OrderItem() { Id = "A", Quantity = 1 },
-					new OrderItem() { Id = "B", Quantity = 1 },
-					new OrderItem() { Id = "C", Quantity = 1 }
-				}
-			};
-
-			// Act
-			var orderTotal = promotionService.CalculateTotal(order);
-
-			// Assert
-			Assert.AreEqual(100m, orderTotal);
-		}
-
-		[Test]
-		public void ScenarioC()
+		public void ScenarioA_ExpectCorrectPriceWhenNoPromotionsApply()
 		{
 			// Arrange
 			var promotionService = new PromotionService(_inventory, _promotions);
@@ -132,10 +91,62 @@ namespace Promotions.Tests
 		}
 
 		/// <summary>
-		/// Bonus - testing the ability to define a promotion with a price that is x% of a SKU unit price
+		/// Scenario B: Promotion Service calculates the correct total price for an order where promotions apply only to a subset of the items.
 		/// </summary>
 		[Test]
-		public void ScenarioD()
+		public void ScenarioB_ExpectCorrectPriceWhenPromotionsApplyToSubsetOfOrder()
+		{
+			// Arrange
+			var promotionService = new PromotionService(_inventory, _promotions);
+			var order = new Order()
+			{
+				Items = new List<OrderItem>()
+				{
+					new OrderItem() { Id = "A", Quantity = 5 },
+					new OrderItem() { Id = "B", Quantity = 5 },
+					new OrderItem() { Id = "C", Quantity = 1 }
+				}
+			};
+
+			// Act
+			var orderTotal = promotionService.CalculateTotal(order);
+
+			// Assert
+			Assert.AreEqual(370m, orderTotal);
+		}
+
+		/// <summary>
+		/// Scenario C: Promotion Service calculates the correct total price for an order where promotions apply to all the items.
+		/// </summary>
+		[Test]
+		public void ScenarioC_ExpectCorrectPriceWhenPromotionsApplyToAllItemsInTheOrder()
+		{
+			// Arrange
+			var promotionService = new PromotionService(_inventory, _promotions);
+			var order = new Order()
+			{
+				Items = new List<OrderItem>()
+				{
+					new OrderItem() { Id = "A", Quantity = 3 },
+					new OrderItem() { Id = "B", Quantity = 5 },
+					new OrderItem() { Id = "C", Quantity = 1 },
+					new OrderItem() { Id = "D", Quantity = 1 }
+				}
+			};
+
+			// Act
+			var orderTotal = promotionService.CalculateTotal(order);
+
+			// Assert
+			Assert.AreEqual(280m, orderTotal);
+		}
+
+		/// <summary>
+		/// Scenario D: Promotion Service calculates the correct total price for an order where promotions are defined with prices as a percentage 
+		/// of the full price of a SKU.
+		/// </summary>
+		[Test]
+		public void ScenarioD_ExpectCorrectPriceWhenPromotionPricesAreDefinedAsPercentageOfSkuPrice()
 		{
 			// Arrange
 
