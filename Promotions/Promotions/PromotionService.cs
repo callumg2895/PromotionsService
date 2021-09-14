@@ -51,8 +51,10 @@ namespace Promotions
 			{
 				// The promotion might apply more than once, so keep going until it can't be applied anymore.
 				// Question: do we want to define some sort of 'priority' for promotions in the future?
-				while (TryApplyPromotion(promotion, orderLookup))
+				while (CanApplyPromotion(promotion, orderLookup))
 				{
+					ApplyPromotion(promotion, orderLookup);
+
 					appliedPromotions.Add(promotion);
 				}
 			}
@@ -66,7 +68,7 @@ namespace Promotions
 			return orderTotal;
 		}
 
-		private bool TryApplyPromotion(Promotion promotion, Dictionary<string, int> orderLookup)
+		private bool CanApplyPromotion(Promotion promotion, Dictionary<string, int> orderLookup)
 		{
 			// Check that the order meets the requirements of the promotion
 			foreach (var promotionItem in promotion.Items)
@@ -83,7 +85,11 @@ namespace Promotions
 				}
 			}
 
-			// At this point, we know the promotion can be applied, so apply it
+			return true;
+		}
+
+		private void ApplyPromotion(Promotion promotion, Dictionary<string, int> orderLookup)
+		{
 			foreach (var promotionItem in promotion.Items)
 			{
 				var quantity = orderLookup[promotionItem.Id];
@@ -92,8 +98,6 @@ namespace Promotions
 
 				orderLookup[promotionItem.Id] = quantity;
 			}
-
-			return true;
 		}
 
 		private decimal SumPromotionPrices(List<Promotion> promotions)
