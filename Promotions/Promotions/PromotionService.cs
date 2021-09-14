@@ -58,35 +58,10 @@ namespace Promotions
 			}
 
 			// Update the total with the price of all applied promotions
-			foreach (var promotion in appliedPromotions)
-			{
-				orderTotal += promotion.BasePrice;
-				orderTotal += promotion.PriceItems.Sum((i) =>
-				{
-					if (!_inventoryLookup.TryGetValue(i.Id, out var inventoryItem))
-					{
-						throw new ArgumentException($"SKU id '{i.Id}' not recognised in inventory");
-					}
-
-					var price = inventoryItem.Price;
-					var priceModifier = i.Percentage / 100;
-
-					return price * priceModifier;
-				});
-			}
+			orderTotal += SumPromotionPrices(appliedPromotions);
 
 			// Update the total with the price of all remaining items in the order
-			foreach (var id in orderLookup.Keys)
-			{
-				if (_inventoryLookup.TryGetValue(id, out var inventoryItem))
-				{
-					orderTotal += (inventoryItem.Price * orderLookup[id]);
-				}
-				else
-				{
-					throw new ArgumentException($"SKU id '{id}' not recognised in inventory");
-				}
-			}
+			orderTotal += SumOrderPrices(orderLookup);
 
 			return orderTotal;
 		}
@@ -119,6 +94,49 @@ namespace Promotions
 			}
 
 			return true;
+		}
+
+		private decimal SumPromotionPrices(List<Promotion> promotions)
+		{
+			var total = 0m;
+
+			foreach (var promotion in promotions)
+			{
+				total += promotion.BasePrice;
+				total += promotion.PriceItems.Sum((i) =>
+				{
+					if (!_inventoryLookup.TryGetValue(i.Id, out var inventoryItem))
+					{
+						throw new ArgumentException($"SKU id '{i.Id}' not recognised in inventory");
+					}
+
+					var price = inventoryItem.Price;
+					var priceModifier = i.Percentage / 100;
+
+					return price * priceModifier;
+				});
+			}
+
+			return total;
+		}
+
+		private decimal SumOrderPrices(Dictionary<string, int> orderLookup)
+		{
+			var total = 0m;
+
+			foreach (var id in orderLookup.Keys)
+			{
+				if (_inventoryLookup.TryGetValue(id, out var inventoryItem))
+				{
+					total += (inventoryItem.Price * orderLookup[id]);
+				}
+				else
+				{
+					throw new ArgumentException($"SKU id '{id}' not recognised in inventory");
+				}
+			}
+
+			return total;
 		}
 	}
 }
