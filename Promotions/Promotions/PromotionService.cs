@@ -44,13 +44,16 @@ namespace Promotions
 			 * of items from the quantity stored in order lookup table. At the end we should be left with a list of 
 			 * applied promotions, and the order lookup table will contain the quantity of each item that could not be assigned
 			 * to a promotion. Then we just sum up the prices of these.
+			 * 
+			 * The order of the promotions list does not matter, as the current requirements state that promotions can be assumed
+			 * to be mututally exclusive. If this changed, then a possible solution could involve using a 'priority' value (likely
+			 * just an integer) as part of the definition which allows the user to guarantee some sort of precedence.
 			 */
 
 			// Apply the promotions where possible, and remove affected items (if any) from the order copy.
 			foreach (var promotion in _promotions)
 			{
 				// The promotion might apply more than once, so keep going until it can't be applied anymore.
-				// Question: do we want to define some sort of 'priority' for promotions in the future?
 				while (CanApplyPromotion(promotion, orderLookup))
 				{
 					ApplyPromotion(promotion, orderLookup);
